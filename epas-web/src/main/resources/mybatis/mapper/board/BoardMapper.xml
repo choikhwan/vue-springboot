@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.example.board.mapper.BoardMapper">
+
+	<select id="boardList" resultType="com.epas.example.board.dto.BoardDto" parameterType="java.util.HashMap">
+		/*    boardList  */
+		SELECT 
+				IDX,
+				TITLE,
+				CONTENTS, 
+		   		AUTHOR,
+		   		CREATED_AT
+		FROM DEVUSER.BOARD
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="idx!=null and !idx.equals('')">				
+		        AND IDX = #{idx}
+		    </if>
+			<if test="title!=null and !title.equals('')">				
+		        AND TITLE LIKE '%' || #{title} || '%'
+		    </if>
+		</trim>	
+	</select>
+	    
+	<select id="getBoard" resultType="com.epas.example.board.dto.BoardDto" parameterType="java.util.HashMap">
+		/*    boardList  */
+		SELECT 
+				IDX,
+				TITLE,
+				CONTENTS, 
+		   		AUTHOR,
+		   		CREATED_AT
+		FROM DEVUSER.BOARD
+		WHERE IDX  = #{idx}
+	</select>
+	
+	<insert id="creatBoard" parameterType="com.epas.example.board.dto.BoardDto">
+		INSERT INTO DEVUSER.BOARD (
+		   IDX,
+		   TITLE,
+		   CONTENTS, 
+		   AUTHOR,
+		   CREATED_AT) 
+		VALUES (
+		   #{idx},
+		   #{title},
+		   #{contents},
+		   #{author},
+		   TO_CHAR(SYSDATE,'YYYY-MM-DD HH24:MI:SS')
+		   )
+	 </insert>
+ 	
+    <update id="updateBoard" parameterType="com.epas.example.board.dto.BoardDto">
+        UPDATE
+	        DEVUSER.BOARD
+	    SET
+	         AUTHOR = #{author}
+	        <if test="title!=null">,TITLE = #{title}</if>
+	        <if test="contents!=null">,CONTENTS = #{contents}</if>
+	    WHERE IDX = #{idx}
+    </update>
+    
+	<delete id="deleteBoard" parameterType="com.epas.example.board.dto.BoardDto">
+		DELETE FROM  DEVUSER.BOARD
+		WHERE IDX = #{idx}
+	</delete>
+	
+	<select id="genMaxIdx" resultType="long" >
+		/*    genMaxIdx  */
+		SELECT 
+                NVL(MAX(IDX),0) + 1 AS IDX
+        FROM DEVUSER.BOARD
+	</select>
+	
+</mapper>

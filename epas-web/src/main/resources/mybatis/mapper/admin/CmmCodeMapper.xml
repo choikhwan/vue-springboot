@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.admin.mapper.CmmCodeMapper">
+	
+	<sql id="pagingOffset">
+		OFFSET CAST(#{pageOffset} AS INTEGER) limit CAST(#{pageSize} AS INTEGER)	
+	</sql>
+	
+	<sql id="selectComCdGrpInfoPaging">
+		SELECT 	M.com_cd_grp_id,
+				M.com_cd_grp_nm,
+				M.com_cd_grp_nm_kr,
+				M.com_cd_grp_nm_ja,
+				M.com_cd_grp_desc,
+				M.com_cd_grp_desc_kr,
+				M.com_cd_grp_desc_ja,
+				M.com_cd_grp_sort_ord,
+				M.com_cd_use_at,
+				(SELECT COUNT(S1.COM_CD_GRP_ID) FROM EPAS.MST_COM_CD_DETAIL_INFO S1 WHERE S1.COM_CD_GRP_ID = M.COM_CD_GRP_ID) AS COM_CD_CNT,
+				M.created_usr_id,
+				to_char(M.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				M.updated_usr_id,
+				to_char(M.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_com_cd_grp_info M
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(M.com_cd_grp_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(M.com_cd_grp_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(M.com_cd_grp_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(M.com_cd_grp_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND M.com_cd_use_at = #{schUseYn}
+		    </if>
+		</trim>
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY M.com_cd_grp_id asc</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectComCdGrpInfoPagingList" resultType="com.epas.admin.dto.ComCdGrpInfoDto" parameterType="java.util.HashMap">
+		/*    selectComCdGrpInfoPagingList  */
+		<include refid="selectComCdGrpInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectComCdGrpInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectComCdGrpInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectComCdGrpInfoPaging"/>
+				) T1
+	</select>
+		
+	<select id="selectComCdGrpInfoList" resultType="com.epas.admin.dto.ComCdGrpInfoDto" parameterType="java.util.HashMap">
+		SELECT 	M.com_cd_grp_id,
+				M.com_cd_grp_nm,
+				M.com_cd_grp_nm_kr,
+				M.com_cd_grp_nm_ja,
+				M.com_cd_grp_desc,
+				M.com_cd_grp_desc_kr,
+				M.com_cd_grp_desc_ja,
+				M.com_cd_grp_sort_ord,
+				M.com_cd_use_at,
+				(SELECT COUNT(S1.COM_CD_GRP_ID) FROM EPAS.MST_COM_CD_DETAIL_INFO S1 WHERE S1.COM_CD_GRP_ID = M.COM_CD_GRP_ID) AS COM_CD_CNT,
+				M.created_usr_id,
+				to_char(M.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				M.updated_usr_id,
+				to_char(M.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_com_cd_grp_info M
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(M.com_cd_grp_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(M.com_cd_grp_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(M.com_cd_grp_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(M.com_cd_grp_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND M.com_cd_use_at = #{schUseYn}
+		    </if>
+		</trim>
+		ORDER BY M.com_cd_grp_id asc
+	</select>
+ 
+	<insert id="insertComCdGrpInfo" parameterType="com.epas.admin.dto.ComCdGrpInfoDto">
+		INSERT INTO epas.mst_com_cd_grp_info (
+			com_cd_grp_id,
+			com_cd_grp_nm,
+			com_cd_grp_nm_kr,
+			com_cd_grp_nm_ja,
+			com_cd_grp_desc,
+			com_cd_grp_desc_kr,
+			com_cd_grp_desc_ja,
+			com_cd_grp_sort_ord,
+			com_cd_use_at,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		) 
+		VALUES (
+			#{comCdGrpId},
+			#{comCdGrpNm},
+			#{comCdGrpNmKr},
+			#{comCdGrpNmJa},
+			#{comCdGrpDesc},
+			#{comCdGrpDescKr},
+			#{comCdGrpDescJa},
+			CAST(#{comCdGrpSortOrd} AS INTEGER),
+			#{comCdUseAt},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		) 
+	</insert>
+	
+ 	<update id="updateComCdGrpInfo" parameterType="com.epas.admin.dto.ComCdGrpInfoDto">
+	    UPDATE
+	        epas.mst_com_cd_grp_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="comCdGrpNm!=null">com_cd_grp_nm = #{comCdGrpNm},</if>
+	        <if test="comCdGrpNmKr!=null">com_cd_grp_nm_kr = #{comCdGrpNmKr},</if>
+	        <if test="comCdGrpNmJa!=null">com_cd_grp_nm_ja = #{comCdGrpNmJa},</if>
+	        <if test="comCdGrpDesc!=null">com_cd_grp_desc = #{comCdGrpDesc},</if>
+	        <if test="comCdGrpDescKr!=null">com_cd_grp_desc_kr = #{comCdGrpDescKr},</if>
+	        <if test="comCdGrpDescJa!=null">com_cd_grp_desc_ja = #{comCdGrpDescJa},</if>
+	        <if test="comCdGrpSortOrd!=null">com_cd_grp_sort_ord = CAST(#{comCdGrpSortOrd} AS INTEGER),</if>
+	        <if test="comCdUseAt!=null">com_cd_use_at = #{comCdUseAt},</if>	        
+	     </trim>
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()     
+	    WHERE
+	        com_cd_grp_id=#{comCdGrpId}	 
+	</update>
+	
+	<delete id="deleteComCdGrpInfo" parameterType="com.epas.admin.dto.ComCdGrpInfoDto">
+		DELETE FROM epas.mst_com_cd_grp_info
+		WHERE com_cd_grp_id = #{comCdGrpId};
+ 	</delete>
+ 	
+    <!-- COM_CD_GRP_ID 카운팅 (ID 중복 체크) -->
+    <select id="countByComCdGrpId" parameterType="string" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_com_cd_grp_info
+        WHERE
+            com_cd_grp_id = #{value}
+    </select>
+	
+	<sql id="selectComCdDetailInfoPaging">
+		SELECT 	t1.com_cd_grp_id,
+				t1.com_cd_id,
+				t1.parent_com_cd_id,
+				(select t2.com_cd_nm
+				 from   epas.mst_com_cd_detail_info t2
+				 where  t2.com_cd_grp_id = t1.com_cd_grp_id
+				 and    t2.com_cd_id = t1.parent_com_cd_id) as parent_com_cd_nm,
+				t1.com_cd_nm,
+				t1.com_cd_nm_kr,
+				t1.com_cd_nm_ja,
+				t1.com_cd_desc,
+				t1.com_cd_desc_kr,
+				t1.com_cd_desc_ja,
+				t1.com_cd_sort_ord,
+				t1.com_cd_use_at,
+				t1.created_usr_id,
+				to_char(t1.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				t1.updated_usr_id,
+				to_char(t1.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_com_cd_detail_info t1
+		<trim prefix="WHERE" prefixOverrides="AND">
+		    <if test="schGroup != null and !schGroup.equals('')">
+		        AND upper(t1.com_cd_grp_id) = upper(#{schGroup})
+		    </if>
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(t1.com_cd_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(t1.com_cd_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(t1.com_cd_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(t1.com_cd_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND t1.com_cd_use_at = #{schUseYn}
+		    </if>
+		</trim>
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY t1.com_cd_grp_id, t1.parent_com_cd_id, t1.com_cd_sort_ord asc</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectComCdDetailInfoPagingList" resultType="com.epas.admin.dto.ComCdDetailInfoDto" parameterType="java.util.HashMap">
+		/*    selectComCdDetailInfoPagingList  */
+		<include refid="selectComCdDetailInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectComCdDetailInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectComCdDetailInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectComCdDetailInfoPaging"/>
+				) T1
+	</select>
+		
+	<select id="selectComCdDetailInfoList" resultType="com.epas.admin.dto.ComCdDetailInfoDto"  parameterType="java.util.HashMap">
+		SELECT 	t1.com_cd_grp_id,
+				t1.com_cd_id,
+				t1.parent_com_cd_id,
+				(select t2.com_cd_nm
+				 from   epas.mst_com_cd_detail_info t2
+				 where  t2.com_cd_grp_id = t1.com_cd_grp_id
+				 and    t2.com_cd_id = t1.parent_com_cd_id) as parent_com_cd_nm,
+				t1.com_cd_nm,
+				t1.com_cd_nm_kr,
+				t1.com_cd_nm_ja,
+				t1.com_cd_desc,
+				t1.com_cd_desc_kr,
+				t1.com_cd_desc_ja,
+				t1.com_cd_sort_ord,
+				t1.com_cd_use_at,
+				t1.created_usr_id,
+				to_char(t1.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				t1.updated_usr_id,
+				to_char(t1.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_com_cd_detail_info t1
+		<trim prefix="WHERE" prefixOverrides="AND">
+		    <if test="schGroup != null and !schGroup.equals('')">
+		        AND upper(t1.com_cd_grp_id) = upper(#{schGroup})
+		    </if>
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(t1.com_cd_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(t1.com_cd_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(t1.com_cd_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(t1.com_cd_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND t1.com_cd_use_at = #{schUseYn}
+		    </if>
+		</trim>
+		ORDER BY t1.com_cd_grp_id, t1.parent_com_cd_id, t1.com_cd_sort_ord asc
+	</select>
+
+	<insert id="insertComCdDetailInfo" parameterType="com.epas.admin.dto.ComCdDetailInfoDto">
+		INSERT INTO epas.mst_com_cd_detail_info (
+			com_cd_grp_id,
+			com_cd_id,
+			parent_com_cd_id,
+			com_cd_nm,
+			com_cd_nm_kr,
+			com_cd_nm_ja,
+			com_cd_desc,
+			com_cd_desc_kr,
+			com_cd_desc_ja,
+			com_cd_sort_ord,
+			com_cd_use_at,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		)
+		VALUES (
+			#{comCdGrpId},
+			#{comCdId},
+			#{parentComCdId},
+			#{comCdNm},
+			#{comCdNmKr},
+			#{comCdNmJa},
+			#{comCdDesc},
+			#{comCdDescKr},
+			#{comCdDescJa},
+			CAST(#{comCdSortOrd} AS INTEGER),
+			#{comCdUseAt},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		)
+	</insert>	
+
+ 	<update id="updateComCdDetailInfo" parameterType="com.epas.admin.dto.ComCdDetailInfoDto">
+	    UPDATE	
+	        epas.mst_com_cd_detail_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="parentComCdId!=null">parent_com_cd_id = #{parentComCdId},</if>
+	        <if test="comCdNm!=null">com_cd_nm = #{comCdNm},</if>
+	        <if test="comCdNmKr!=null">com_cd_nm_kr = #{comCdNmKr},</if>
+	        <if test="comCdNmJa!=null">com_cd_nm_ja = #{comCdNmJa},</if>
+	        <if test="comCdDesc!=null">com_cd_desc = #{comCdDesc},</if>
+	        <if test="comCdDescKr!=null">com_cd_desc_kr = #{comCdDescKr},</if>
+	        <if test="comCdDescJa!=null">com_cd_desc_ja = #{comCdDescJa},</if>
+	        <if test="comCdSortOrd!=null">com_cd_sort_ord = CAST(#{comCdSortOrd} AS INTEGER),</if>
+	        <if test="comCdUseAt!=null">com_cd_use_at = #{comCdUseAt},</if>	   
+	     </trim>
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()     
+	    WHERE com_cd_grp_id=#{comCdGrpId}
+	    AND   com_cd_id=#{comCdId}
+	</update>
+	
+	<delete id="deleteComCdDetailInfo" parameterType="com.epas.admin.dto.ComCdDetailInfoDto">
+		DELETE FROM epas.mst_com_cd_detail_info
+	    WHERE com_cd_grp_id=#{comCdGrpId}
+	    AND   com_cd_id=#{comCdId}
+ 	</delete>
+ 		
+    <!-- COM_CD_ID 카운팅 (ID 중복 체크) -->
+    <select id="countByComCdId" parameterType="com.epas.admin.dto.ComCdDetailInfoDto" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_com_cd_detail_info
+        WHERE
+            com_cd_grp_id = #{comCdGrpId}
+        AND com_cd_id = #{comCdId}
+    </select>
+    
+    <!-- com_cd_grp_id로 등록된 공통코드 조재여부 체크) -->
+    <select id="checkComCdIdCnt"  parameterType="java.util.HashMap" resultType="int">
+		/*   checkComCdIdCnt  */
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_com_cd_detail_info
+        WHERE com_cd_grp_id = #{comCdGrpId}
+    </select>
+     		
+</mapper>

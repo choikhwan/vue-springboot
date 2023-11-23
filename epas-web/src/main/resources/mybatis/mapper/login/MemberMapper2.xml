@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.login.mapper.MemberMapper2">
+
+    <!-- DEVUSER.mst_usr_info_v1 테이블 전체 컬럼 -->
+    <sql id="memberColumns">
+            usr_id, 
+			email,
+			usr_nm,
+			usr_pwd,
+			to_char(usr_pwd_created_dt,'YYYY-MM-DD HH24:MI:SS') as usr_pwd_created_dt,
+			usr_tel,
+			menu_ord,
+			role_seq,
+			group_seq,
+			created_usr_id,
+			to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+			updated_usr_id,
+			to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+    </sql>
+    
+    <!-- 회원 패스워드 만료기간 조회 -->
+    <select id="expiredPasswordByLoginId" parameterType="string" resultType="string">
+        SELECT
+            CASE
+            WHEN (TO_DATE(to_char(sysdate, 'YYYY-MM-DD'), 'YYYY-MM-DD') - TO_DATE(to_char(usr_pwd_created_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD'))
+                 > ( SELECT nvl(SYS_SET_VAL,90) 
+                                      FROM DEVUSER.MST_SYS_SET_INFO  
+                                      WHERE SYS_SET_TYP = 'SETTINGS' 
+                                      AND SYS_PARENT_ID = 'CERTIFICATION' 
+                                      AND SYS_SET_NM = 'PWD_EXPIRED')
+            THEN 'Y'
+            ELSE 'N'
+            END AS expire_pwd_yn
+        FROM
+            DEVUSER.mst_usr_info
+        WHERE
+            usr_id = #{value}
+    </select>
+
+</mapper>

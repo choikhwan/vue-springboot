@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.admin.mapper.UsrRoleInfoMapper">
+	
+	<sql id="pagingOffset">
+		OFFSET CAST(#{pageOffset} AS INTEGER) limit CAST(#{pageSize} AS INTEGER)	
+	</sql>
+	
+	<sql id="selectUsrRoleInfoPaging">
+		SELECT	M.role_seq,
+				M.role_nm,
+				M.role_desc,
+				(SELECT COUNT(S1.USR_ID) FROM EPAS.MST_USR_INFO S1 WHERE S1.ROLE_SEQ = M.ROLE_SEQ) AS USR_CNT,
+				M.use_yn,
+				M.created_usr_id,
+				to_char(M.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				M.updated_usr_id,
+				to_char(M.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_usr_role_info M
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schVal!=null and !schVal.equals('')">				
+		        AND upper(M.role_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND M.use_yn = #{schUseYn}
+		    </if>
+		</trim>
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY M.role_seq asc</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectUsrRoleInfoPagingList" resultType="com.epas.admin.dto.UsrRoleInfoDto" parameterType="java.util.HashMap">
+		/*    selectUsrRoleInfoPagingList  */
+		<include refid="selectUsrRoleInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectUsrRoleInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectUsrRoleInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectUsrRoleInfoPaging"/>
+				) T1
+	</select>
+		
+	<select id="selectUsrRoleInfoList" resultType="com.epas.admin.dto.UsrRoleInfoDto" parameterType="java.util.HashMap">
+		SELECT	M.role_seq,
+				M.role_nm,
+				M.role_desc,
+				(SELECT COUNT(S1.USR_ID) FROM EPAS.MST_USR_INFO S1 WHERE S1.ROLE_SEQ = M.ROLE_SEQ) AS USR_CNT,
+				M.use_yn,
+				M.created_usr_id,
+				to_char(M.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				M.updated_usr_id,
+				to_char(M.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_usr_role_info M
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schVal!=null and !schVal.equals('')">				
+		        AND upper(M.role_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND M.use_yn = #{schUseYn}
+		    </if>
+		</trim>
+		Order by M.role_seq asc
+	</select>
+ 
+	<insert id="insertUsrRoleInfo" parameterType="com.epas.admin.dto.UsrRoleInfoDto">
+		INSERT INTO epas.mst_usr_role_info (
+			role_nm,
+			role_desc,
+			use_yn,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		) 
+		VALUES (
+			#{roleNm},
+			#{roleDesc},
+			#{useYn},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		) 
+	</insert>
+	
+ 	<update id="updateUsrRoleInfo" parameterType="com.epas.admin.dto.UsrRoleInfoDto">
+		 
+	    UPDATE
+	        epas.mst_usr_role_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="roleNm!=null">role_nm = #{roleNm},</if>
+	        <if test="roleDesc!=null">role_desc = #{roleDesc},</if>
+	        <if test="useYn!=null">use_yn = #{useYn},</if>
+	        <if test="updatedUsrId!=null">updated_usr_id = #{updatedUsrId},</if>
+	     </trim>
+	        , updated_dt=now()     
+	    WHERE
+	        role_seq =#{roleSeq}	 
+	</update>
+	
+	<delete id="deleteUsrRoleInfo" parameterType="com.epas.admin.dto.UsrRoleInfoDto">
+		DELETE FROM epas.mst_usr_role_info
+		WHERE role_seq = #{roleSeq}
+ 	</delete>
+ 	
+	<update id="delUsrRoleInfo" parameterType="com.epas.admin.dto.UsrRoleInfoDto">
+		UPDATE 
+			epas.mst_usr_role_info
+		SET
+	          use_yn = 'N'
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()  
+		WHERE role_seq = #{roleSeq}
+ 	</update>
+ 	
+    <!-- role명 카운팅 (중복 체크) -->
+    <select id="countByUsrRoleNm" parameterType="string" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_usr_role_info
+        WHERE
+            role_nm = #{roleNm}
+    </select>
+
+    <!-- role별 Menu 권한 List 조회 -->
+    <select id="selectRoleMenuInfoList" parameterType="java.util.HashMap" resultType="com.epas.admin.dto.RoleMenuInfoDto">
+		/*    selectRoleMenuInfoList  */
+		 WITH RECURSIVE SEARCH_MENU(MENU_ID, MENU_PARENT_ID, MENU_NM, URL, SORT_ORD, PATH, LEVEL, CYCLE) 
+		 AS (
+		     SELECT	T1.MENU_ID, T1.MENU_PARENT_ID, T1.MENU_NM, T1.URL, T1.SORT_ORD, ARRAY[T1.MENU_ID], 0, false
+		     FROM 	EPAS.MST_MENU_INFO T1
+		     WHERE	COALESCE(T1.MENU_PARENT_ID,'') = ''
+		     AND	T1.USE_YN = 'Y'
+			<if test="roleseq != 4">
+				AND LEFT(T1.MENU_ID, 4) NOT IN ('EP11', 'EP12')
+			</if>
+		     UNION ALL
+		     SELECT	T1.MENU_ID, T1.MENU_PARENT_ID, T1.MENU_NM, T1.URL, T1.SORT_ORD, PATH , LEVEL + 1,  T1.MENU_ID = ANY(PATH)
+		     FROM	EPAS.MST_MENU_INFO T1, SEARCH_MENU T2
+		     WHERE	T1.MENU_PARENT_ID = T2.MENU_ID
+		     AND	NOT CYCLE
+		     AND	T1.USE_YN = 'Y'
+		    )
+		 SELECT A.MENU_ID, 
+		 		CASE A.MENU_PARENT_ID WHEN NULL THEN 'EP0000' WHEN '' THEN 'EP0000' ELSE A.MENU_PARENT_ID END AS MENU_PARENT_ID,
+		 		lpad('', A.LEVEL) || MENU_NM AS MENU_NM,
+		 		A.URL,
+		 		A.SORT_ORD,
+		 		A.PATH,
+		 		A.LEVEL,
+		 		COALESCE(B.ROLE_READ,'N') as ROLE_READ,
+		 		COALESCE(B.ROLE_CREATE, 'N') as ROLE_CREATE,
+		 		COALESCE(B.ROLE_DELETE, 'N') as ROLE_DELETE,
+		 		COALESCE(B.ROLE_UPDATE, 'N') as ROLE_UPDATE,
+		 		B.ROLE_SEQ,
+		 		B.ROLE_MENU_SEQ,
+		 		CAST(REPLACE(A.MENU_ID, 'EP', '') AS INTEGER) MENU_ID_KEY,
+		 		CAST(REPLACE(CASE A.MENU_PARENT_ID WHEN NULL THEN 'EP0000' WHEN '' THEN 'EP0000' ELSE A.MENU_PARENT_ID END, 'EP', '') AS INTEGER) MENU_PARENT_ID_KEY,
+		 		COALESCE(B.USE_YN, 'Y') AS USE_YN
+		 FROM   SEARCH_MENU A 
+		 		LEFT OUTER JOIN EPAS.MST_ROLE_MENU_INFO B ON	A.MENU_ID = B.MENU_ID 
+		 												  AND   B.USE_YN = 'Y'
+				<choose>
+				<when test="roleSeq!=null and !roleSeq.equals('')">
+		 												  AND	B.ROLE_SEQ = CAST(#{roleSeq} AS INTEGER)
+				</when>
+				<otherwise>
+		 												  AND	B.ROLE_SEQ = -1
+				</otherwise>
+				</choose>
+		 ORDER BY A.PATH, A.MENU_PARENT_ID, A.LEVEL, A.SORT_ORD
+    </select>
+    
+	<insert id="insertMstRoleMenuInfo" parameterType="com.epas.admin.dto.RoleMenuInfoDto">
+		/* insertMstRoleMenuInfo */
+		with upsert as 
+		(
+		    UPDATE
+		        epas.mst_role_menu_info
+		    <trim prefix="SET" suffixOverrides=",">
+		        <if test="roleRead!=null">role_read = #{roleRead},</if>
+		        <if test="roleCreate!=null">role_create = #{roleCreate},</if>
+		        <if test="roleUpdate!=null">role_update = #{roleUpdate},</if>
+		        <if test="roleDelete!=null">role_delete = #{roleDelete},</if>
+		        <if test="useYn!=null">use_yn = #{useYn},</if>
+		        <if test="updatedUsrId!=null">updated_usr_id = #{updatedUsrId},</if>
+		     </trim>
+		        , updated_dt=now()     
+		    WHERE menu_id =#{menuId}
+		    AND   role_seq =CAST(#{roleSeq} AS INTEGER)
+			returning *
+		)
+		INSERT INTO epas.mst_role_menu_info (
+			role_read,
+			role_create,
+			role_update,
+			role_delete,
+			role_seq,
+			menu_id,
+			use_yn,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		)
+		SELECT 
+			#{roleRead},
+			#{roleCreate},
+			#{roleUpdate},
+			#{roleDelete},
+			CAST(#{roleSeq} AS INTEGER),
+			#{menuId},
+			#{useYn},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		WHERE not exists(select * from upsert)
+	</insert>
+	
+ 	<update id="updateMstRoleMenuInfo" parameterType="com.epas.admin.dto.RoleMenuInfoDto">
+		/* updateMstRoleMenuInfo */		 
+	    UPDATE
+	        epas.mst_role_menu_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="roleRead!=null">role_read = #{roleRead},</if>
+	        <if test="roleCreate!=null">role_create = #{roleCreate},</if>
+	        <if test="roleUpdate!=null">role_update = #{roleUpdate},</if>
+	        <if test="roleDelete!=null">role_delete = #{roleDelete},</if>
+	        <if test="useYn!=null">use_yn = #{useYn},</if>
+	        <if test="updatedUsrId!=null">updated_usr_id = #{updatedUsrId},</if>
+	     </trim>
+	        , updated_dt=now()     
+	    WHERE
+	        role_menu_seq =#{roleMenuSeq}	 
+	</update>
+	
+    <!-- role명으로 role_seq조회 -->
+    <select id="selectRoleSeq" parameterType="java.util.HashMap" resultType="long">
+		/*   selectRoleSeq  */
+		SELECT	role_seq
+		FROM 	EPAS.MST_USR_ROLE_INFO
+		WHERE   ROLE_NM = #{roleNm}
+    </select>	
+
+</mapper>

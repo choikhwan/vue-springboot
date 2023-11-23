@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.common.mapper.CommonMapper">
+	
+	<select id="selectCmmCode" parameterType="java.util.HashMap" resultType="com.epas.common.dto.ComCdDto">
+		 
+		SELECT 
+			com_cd_grp_id as CODE_ID,
+			com_cd_id as CODE,
+			CASE #{lang} WHEN 'ko' THEN com_cd_nm_kr WHEN 'ja' THEN com_cd_nm_ja else com_cd_nm END as CODE_NM,
+			CASE #{lang} WHEN 'ko' THEN com_cd_desc_kr WHEN 'ja' THEN com_cd_desc_ja else com_cd_desc END as CODE_DC,
+			com_cd_id || ' : '|| CASE #{lang} WHEN 'kr' THEN com_cd_nm_kr WHEN 'ja' THEN com_cd_nm_ja else com_cd_nm END as CODE_AND_NM
+		FROM 
+			DEVUSER.mst_com_cd_detail_info
+		WHERE com_cd_use_at = 'Y'
+		AND com_cd_grp_id = #{comCdGrpId}
+		<if test="parentComCdId!=null and !parentComCdId.equals('')">				
+		AND parent_com_cd_id = #{parentComCdId}
+	    </if>		
+		ORDER BY com_cd_sort_ord asc
+		
+	</select>
+
+    <select id="selectCmmCdGrp" parameterType="java.util.HashMap" resultType="com.epas.common.dto.ComCdDto">
+             
+            SELECT 
+                'mst_com_cd_grp_info' CODE_ID, 
+                com_cd_grp_id     	  CODE, 
+                CASE #{lang} WHEN 'ko' THEN com_cd_grp_nm_kr WHEN 'ja' THEN com_cd_grp_nm_ja else com_cd_grp_nm END as CODE_NM, 
+				CASE #{lang} WHEN 'ko' THEN com_cd_grp_desc_kr WHEN 'ja' THEN com_cd_grp_desc_ja else com_cd_grp_desc END as CODE_DC,
+                com_cd_grp_id || ' : '|| CASE #{lang} WHEN 'ko' THEN com_cd_grp_nm_kr WHEN 'ja' THEN com_cd_grp_nm_ja else com_cd_grp_nm END as CODE_AND_NM
+            FROM 
+                DEVUSER.mst_com_cd_grp_info
+            WHERE 1=1
+            ORDER BY com_cd_grp_nm asc
+    </select>
+    	 	
+    <select id="selectUserGroup" parameterType="com.epas.common.dto.CmmCodeSeqDto" resultType="com.epas.common.dto.CmmCodeSeqDto">
+             
+            SELECT 
+                'mst_usr_group_info' CODE_ID, 
+                usr_group_seq     	 CODE, 
+                usr_group_nm    	 CODE_NM, 
+                usr_group_desc       CODE_DC,
+                usr_group_seq || ' : '|| usr_group_nm as CODE_AND_NM
+            FROM 
+                DEVUSER.mst_usr_group_info
+            WHERE 1=1
+            ORDER BY usr_group_nm asc
+    </select>
+
+    <select id="selectUserRole" parameterType="com.epas.common.dto.CmmCodeSeqDto" resultType="com.epas.common.dto.CmmCodeSeqDto">
+             
+            SELECT 
+                'mst_usr_role_info'  CODE_ID, 
+                role_seq         	 CODE, 
+                role_nm         	 CODE_NM, 
+                role_desc            CODE_DC,
+                role_seq || ' : '|| role_nm as CODE_AND_NM
+            FROM 
+                DEVUSER.mst_usr_role_info
+            WHERE 1=1
+            ORDER BY role_nm asc
+    </select>
+    
+    <select id="selectParentMenu" parameterType="com.epas.common.dto.ComCdDto" resultType="com.epas.common.dto.ComCdDto">
+			SELECT 'mst_menu_info' CODE_ID, 
+					'' 		CODE,
+					'' 		CODE_NM,
+					''      CODE_DC,
+					''      CODE_AND_NM
+			UNION ALL
+			SELECT 
+					'mst_menu_info' CODE_ID, 
+					menu_id 		CODE,
+					menu_nm 		CODE_NM,
+					''      		CODE_DC,
+					menu_id || ' : '|| menu_nm as CODE_AND_NM
+			FROM
+				DEVUSER.mst_menu_info 
+			WHERE menu_parent_id =''
+			ORDER By CODE asc
+    </select>
+    
+    <select id="selectParentComCd" parameterType="java.util.HashMap" resultType="com.epas.common.dto.ComCdDto">    
+			SELECT 	com_cd_grp_id	CODE_ID,
+			        com_cd_id		CODE,
+        			CASE #{lang} WHEN 'ko' THEN com_cd_nm_kr WHEN 'ja' THEN com_cd_nm_ja else com_cd_nm END as CODE_NM,
+			        CASE #{lang} WHEN 'ko' THEN com_cd_desc_kr WHEN 'ja' THEN com_cd_desc_ja else com_cd_desc END as CODE_DC,
+					com_cd_id || ' : '|| CASE #{lang} WHEN 'kr' THEN com_cd_nm_kr WHEN 'ja' THEN com_cd_nm_ja else com_cd_nm END as CODE_AND_NM
+			FROM 
+				DEVUSER.mst_com_cd_detail_info
+			WHERE COALESCE(parent_com_cd_id,'') = ''
+			ORDER BY com_cd_grp_id, com_cd_sort_ord, com_cd_id asc
+    </select>
+    
+   	<select id="selectUsrMenuRole" resultType="com.epas.common.dto.UsrMenuRoleDto" parameterType="java.util.HashMap">
+		/*   selectUsrMenuRoleList */
+ 		WITH TEMP_ROLE AS ( 
+ 			SELECT	'N' AS role_read, 
+					'N' AS role_create, 
+					'N' AS role_update,
+					'N' AS role_delete
+			FROM DUAL
+ 		),
+ 		USER_ROLE AS (
+			SELECT  T1.ROLE_READ, 
+					T1.ROLE_CREATE, 
+					T1.ROLE_UPDATE,
+					T1.ROLE_DELETE,
+					T3.MENU_ID,
+					T3.MENU_NM,
+					T3.URL,
+					T2.USR_ID  
+			FROM	DEVUSER.MST_ROLE_MENU_INFO T1,
+					DEVUSER.MST_USR_INFO T2,
+					DEVUSER.MST_MENU_INFO T3
+			WHERE   T1.ROLE_SEQ = T2.ROLE_SEQ
+			AND     T1.MENU_ID 	= T3.MENU_ID 
+			AND     T2.USR_ID 	= #{usrId}
+			AND     T1.USE_YN 	= 'Y'
+			AND     T3.USE_YN 	= 'Y'
+			AND     T3.URL  	= #{url}
+			AND     ROWNUM = 1
+		)
+		SELECT  
+				COALESCE(B.ROLE_READ,A.ROLE_READ) AS ROLE_READ,
+				COALESCE(B.ROLE_CREATE,A.ROLE_CREATE) AS ROLE_CREATE, 
+				COALESCE(B.ROLE_UPDATE,A.ROLE_UPDATE) AS ROLE_UPDATE,
+				COALESCE(B.ROLE_DELETE,A.ROLE_DELETE) AS ROLE_DELETE,
+				B.MENU_ID,
+				B.MENU_NM,
+				B.URL,
+				B.USR_ID  		
+		FROM TEMP_ROLE A 
+		LEFT OUTER JOIN USER_ROLE B ON (1=1)
+    </select>
+    
+    
+    <resultMap id="tabMenuList" type="HashMap">
+		<id column="menuId" property="menuId"></id>
+		<id column="text" property="text"></id>
+		<id column="idx"  property="idx"></id>
+	</resultMap>
+	
+    <select id="selectTapMenuList" parameterType="java.util.HashMap" resultMap="tabMenuList">
+			SELECT 
+					menu_id 		menuId,
+					menu_nm 		text,
+					sort_ord		idx
+			FROM    DEVUSER.mst_menu_info 
+			WHERE   menu_parent_id = #{menuParentId}
+			AND     use_yn = 'Y'
+			ORDER By sort_ord asc
+    </select>    
+</mapper>

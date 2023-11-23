@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.admin.mapper.UsrGroupInfoMapper">
+	
+	<sql id="pagingOffset">
+		OFFSET CAST(#{pageOffset} AS INTEGER) limit CAST(#{pageSize} AS INTEGER)	
+	</sql>
+
+	<sql id="selectUsrGroupInfoPaging">
+		SELECT	usr_group_seq,
+				usr_group_nm,
+				usr_group_desc,
+				(SELECT COUNT(S1.USR_ID) FROM EPAS.MST_USR_INFO S1 WHERE S1.GROUP_SEQ = USR_GROUP_SEQ) AS USR_CNT,
+				created_usr_id,
+				to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				updated_usr_id,
+				to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_usr_group_info
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schVal!=null and !schVal.equals('')">				
+		        AND upper(usr_group_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+		</trim>
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY usr_group_seq asc</otherwise>
+		</choose>
+	</sql>
+
+	<select id="selectUsrGroupInfoPagingList" resultType="com.epas.admin.dto.UsrGroupInfoDto" parameterType="java.util.HashMap">
+		/*    selectUsrGroupInfoPagingList  */
+		<include refid="selectUsrGroupInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectUsrGroupInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectUsrGroupInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectUsrGroupInfoPaging"/>
+				) T1
+	</select>
+		
+	<select id="selectUsrGroupInfoList" resultType="com.epas.admin.dto.UsrGroupInfoDto" parameterType="java.util.HashMap">
+		SELECT	usr_group_seq,
+				usr_group_nm,
+				usr_group_desc,
+				(SELECT COUNT(S1.USR_ID) FROM EPAS.MST_USR_INFO S1 WHERE S1.GROUP_SEQ = USR_GROUP_SEQ) AS USR_CNT,
+				created_usr_id,
+				to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				updated_usr_id,
+				to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_usr_group_info
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schVal!=null and !schVal.equals('')">				
+		        AND upper(usr_group_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+		</trim>
+		Order by usr_group_seq asc
+	</select>
+ 
+	<insert id="insertUsrGroupInfo" parameterType="com.epas.admin.dto.UsrGroupInfoDto">
+		INSERT INTO epas.mst_usr_group_info (
+			usr_group_nm,
+			usr_group_desc,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		) 
+		VALUES (
+			#{usrGroupNm},
+			#{usrGroupDesc},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		) 
+	</insert>
+	
+ 	<update id="updateUsrGroupInfo" parameterType="com.epas.admin.dto.UsrGroupInfoDto">
+		 
+	    UPDATE
+	        epas.mst_usr_group_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="usrGroupNm!=null">usr_group_nm = #{usrGroupNm},</if>
+	        <if test="usrGroupDesc!=null">usr_group_desc = #{usrGroupDesc},</if>
+	     </trim>
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()     
+	    WHERE
+	        usr_group_seq =#{usrGroupSeq}	 
+	</update>
+	
+	<delete id="deleteUsrGroupInfo" parameterType="com.epas.admin.dto.UsrGroupInfoDto">
+		DELETE FROM epas.mst_usr_group_info
+		WHERE usr_group_seq = #{usrGroupSeq};
+ 	</delete>
+ 	
+    <!-- 사용자 그룹 카운팅 (중복 체크) -->
+    <select id="countByUsrGroupNm" parameterType="string" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_usr_group_info
+        WHERE
+            usr_group_nm = #{usrGroupNm}
+    </select>
+    
+</mapper>

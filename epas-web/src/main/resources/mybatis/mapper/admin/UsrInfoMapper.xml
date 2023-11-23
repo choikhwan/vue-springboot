@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.admin.mapper.UsrInfoMapper">
+
+	<sql id="pagingOffset">
+		OFFSET CAST(#{pageOffset} AS INTEGER) ROWS FETCH FIRST CAST(#{pageSize} AS INTEGER) ROWS ONLY
+	</sql>
+	
+	<sql id="selectUserInfoPaging">
+		SELECT	usr_id, 
+				email,
+				usr_nm,
+				usr_pwd,
+				to_char(usr_pwd_created_dt,'YYYY-MM-DD HH24:MI:SS') as usr_pwd_created_dt,
+				usr_tel,
+				menu_ord,
+				role_seq,
+				group_seq,
+				usr_lang,
+				use_yn,
+				created_usr_id,
+				to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				updated_usr_id,
+				to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM DEVUSER.mst_usr_info
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(usr_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(usr_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(usr_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(usr_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schUsrGrp!=null and !schUsrGrp.equals('')">				
+		        AND group_seq = CAST(#{schUsrGrp} AS INTEGER)
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND use_yn = #{schUseYn}
+		    </if>
+		</trim>	
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY usr_id</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectUserInfoPagingList" resultType="com.epas.admin.dto.UsrInfoDto" parameterType="java.util.HashMap">
+		/*    selectUserInfoPagingList  */
+		<include refid="selectUserInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectUserInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectUserInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectUserInfoPaging"/>
+				) T1
+	</select>
+	
+ <!-- Samp 사용자 정보 -->
+ <select id="selectUserList" resultType="com.epas.admin.dto.UsrInfoDto" parameterType="java.util.HashMap">
+	SELECT	usr_id, 
+			email,
+			usr_nm,
+			usr_pwd,
+			to_char(usr_pwd_created_dt,'YYYY-MM-DD HH24:MI:SS') as usr_pwd_created_dt,
+			usr_tel,
+			menu_ord,
+			role_seq,
+			group_seq,
+			usr_lang,
+			use_yn,
+			created_usr_id,
+			to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+			updated_usr_id,
+			to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+	FROM DEVUSER.mst_usr_info
+	<trim prefix="WHERE" prefixOverrides="AND">
+		<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+	        AND (upper(usr_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(usr_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+	    </if>			
+		<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+	        AND upper(usr_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+	    </if>
+		<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+	        AND upper(usr_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+	    </if>
+		<if test="schUsrGrp!=null and !schUsrGrp.equals('')">				
+	        AND group_seq = CAST(#{schUsrGrp} AS INTEGER)
+	    </if>
+		<if test="schUseYn!=null and !schUseYn.equals('')">				
+	        AND use_yn = #{schUseYn}
+	    </if>
+	</trim>	
+	order by usr_id
+ </select>
+ 
+ <insert id="saveUser" parameterType="com.epas.admin.dto.UsrInfoDto">
+    INSERT INTO DEVUSER.mst_usr_info (
+		usr_id, 
+		email,
+		usr_nm,
+		usr_pwd,
+		usr_pwd_created_dt,
+		usr_tel,
+		menu_ord,
+		role_seq,
+		group_seq,
+		usr_lang,
+		use_yn,
+		created_usr_id,
+		created_dt,
+		updated_usr_id,
+		updated_dt
+    )
+    VALUES (
+        #{usrId},
+        #{email},
+        #{usrNm},
+        #{usrPwd},
+        now(),
+        #{usrTel},
+        #{menuOrd},
+        #{roleSeq},
+        #{groupSeq},
+        #{usrLang},
+        #{useYn},
+        #{createdUsrId},
+        now(),
+        #{updatedUsrId},
+        now()
+    )
+ </insert>
+ 
+ <update id="updateUser" parameterType="com.epas.admin.dto.UsrInfoDto">
+    UPDATE
+        DEVUSER.MST_USR_INFO
+    <trim prefix="SET" suffixOverrides=",">
+        <if test="email!=null">EMAIL=#{email},</if>
+        <if test="usrNm!=null">USR_NM=#{usrNm},</if>
+        <if test="usrTel!=null">USR_TEL=#{usrTel},</if>
+        <if test="menuOrd!=null">MENU_ORD=#{menuOrd},</if>
+        <if test="roleSeq!=null">ROLE_SEQ=#{roleSeq},</if>
+        <if test="groupSeq!=null">GROUP_SEQ=#{groupSeq},</if>
+        <if test="usrLang!=null">USR_LANG=#{usrLang},</if>
+        <if test="useYn!=null">USE_YN=#{useYn},</if>
+     </trim>
+        , UPDATED_USR_ID=#{updatedUsrId}
+        , UPDATED_DT=NOW()     
+    WHERE 1=1
+        AND USR_ID = #{usrId}
+ </update>
+ 
+ <update id="initPassword" parameterType="com.epas.admin.dto.UsrInfoDto">
+    UPDATE
+        DEVUSER.mst_usr_info
+    SET
+          usr_pwd=#{usrPwd}
+     	, usr_pwd_created_dt=now()
+        , updated_usr_id=#{updatedUsrId}
+        , updated_dt=now()     
+    WHERE
+        usr_id=#{usrId}
+ </update> 
+ 
+ <delete id="deleteUser" parameterType="com.epas.admin.dto.UsrInfoDto">
+	DELETE FROM DEVUSER.mst_usr_info
+	WHERE usr_id = #{usrId};
+ </delete>
+ 
+ <update id="delUser" parameterType="com.epas.admin.dto.UsrInfoDto">
+    UPDATE
+        DEVUSER.mst_usr_info
+    SET
+          use_yn = 'N'
+        , updated_usr_id=#{updatedUsrId}
+        , updated_dt=now()   
+	WHERE usr_id = #{usrId}
+ </update> 
+ 
+ <!-- User ID 카운팅 (ID 중복 체크) -->
+ <select id="countByUsrId" parameterType="string" resultType="int">
+    SELECT
+        COUNT(1)
+    FROM
+        DEVUSER.mst_usr_info
+    WHERE
+        usr_id = #{value}
+ </select>
+ 
+</mapper>

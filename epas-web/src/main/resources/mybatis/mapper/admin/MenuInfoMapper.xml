@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.admin.mapper.MenuInfoMapper">
+	
+	<sql id="pagingOffset">
+		OFFSET CAST(#{pageOffset} AS INTEGER) limit CAST(#{pageSize} AS INTEGER)	
+	</sql>
+	
+	<sql id="selectMenuInfoPaging">
+		SELECT	menu_id,
+				menu_nm,
+				menu_parent_id,
+				url,
+				sort_ord,
+				use_yn,
+				created_usr_id,
+				to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				updated_usr_id,
+				to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_menu_info
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(menu_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(menu_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(menu_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(menu_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schParent!=null and !schParent.equals('')">				
+		        AND upper(menu_parent_id) = upper(#{schParent})
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND use_yn = #{schUseYn}
+		    </if>
+			<if test="roleseq != 4">
+		        AND LEFT(MENU_ID, 4) NOT IN ('EP11', 'EP12')
+		    </if>
+		</trim>
+		<choose>
+		    <when test="orderby!=null and !orderby.equals('')">ORDER BY ${orderby}</when>
+		    <otherwise>ORDER BY menu_id asc</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="selectMenuInfoPagingList" resultType="com.epas.admin.dto.MenuInfoDto" parameterType="java.util.HashMap">
+		/*    selectMenuInfoPagingList  */
+		<include refid="selectMenuInfoPaging" />
+		<include refid="pagingOffset" />
+	</select>
+	
+	<select id="selectMenuInfoPagingCount" resultType="int" parameterType="java.util.HashMap">
+		/*    selectMenuInfoPagingCount  */
+		SELECT
+				COUNT(1)
+		FROM (
+				<include refid="selectMenuInfoPaging"/>
+				) T1
+	</select>
+	
+	<select id="selectMenuInfoList" resultType="com.epas.admin.dto.MenuInfoDto" parameterType="java.util.HashMap">
+		SELECT	menu_id,
+				menu_nm,
+				menu_parent_id,
+				url,
+				sort_ord,
+				use_yn,
+				created_usr_id,
+				to_char(created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+				updated_usr_id,
+				to_char(updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt
+		FROM epas.mst_menu_info
+		<trim prefix="WHERE" prefixOverrides="AND">
+			<if test="schType.equals('') and schVal!=null and !schVal.equals('')">				
+		        AND (upper(menu_id) like '%' || upper(replace(#{schVal},'*','%')) || '%' OR upper(menu_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%')
+		    </if>			
+			<if test="schType.equals('ID') and schVal!=null and !schVal.equals('')">				
+		        AND upper(menu_id) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schType.equals('NAME') and schVal!=null and !schVal.equals('')">				
+		        AND upper(menu_nm) like '%' || upper(replace(#{schVal},'*','%')) || '%'
+		    </if>
+			<if test="schParent!=null and !schParent.equals('')">				
+		        AND upper(menu_parent_id) = upper(#{schParent})
+		    </if>
+			<if test="schUseYn!=null and !schUseYn.equals('')">				
+		        AND use_yn = #{schUseYn}
+		    </if>
+			<if test="roleseq != 4">
+		        AND LEFT(MENU_ID, 4) NOT IN ('EP11', 'EP12')
+		    </if>
+		</trim>
+		ORDER BY menu_id asc
+	</select>
+ 
+	<insert id="insertMenuInfo" parameterType="com.epas.admin.dto.MenuInfoDto">
+		INSERT INTO epas.mst_menu_info (
+			menu_id,
+			menu_nm,
+			menu_parent_id,
+			url,
+			sort_ord,
+			use_yn,
+			created_usr_id,
+			created_dt,
+			updated_usr_id,
+			updated_dt
+		) 
+		VALUES (
+			upper(#{menuId}),
+			#{menuNm},
+			#{menuParentId},
+			#{url},
+			CAST(#{sortOrd} AS INTEGER),
+			#{useYn},
+			#{createdUsrId},
+			now(),
+			#{updatedUsrId},
+			now()
+		) 
+	</insert>
+	
+ 	<update id="updateMenuInfo" parameterType="com.epas.admin.dto.MenuInfoDto">
+		 
+	    UPDATE
+	        epas.mst_menu_info
+	    <trim prefix="SET" suffixOverrides=",">
+	        <if test="menuNm!=null">menu_nm = #{menuNm},</if>
+	        <if test="menuParentId!=null">menu_parent_id = #{menuParentId},</if>
+	        <if test="url!=null">url = #{url},</if>
+	        <if test="sortOrd!=null">sort_ord = CAST(#{sortOrd} AS INTEGER),</if>
+	        <if test="useYn!=null">use_yn = #{useYn},</if>
+	     </trim>
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()     
+	    WHERE
+	        menu_id=#{menuId}	 
+	</update>
+	
+	<delete id="deleteMenuInfo" parameterType="com.epas.admin.dto.MenuInfoDto">
+		DELETE FROM epas.mst_menu_info
+		WHERE menu_id = #{menuId}
+ 	</delete>
+ 	
+	<update id="delMenuInfo" parameterType="com.epas.admin.dto.MenuInfoDto">
+	    UPDATE
+	        epas.mst_menu_info
+	    SET
+	          use_yn = 'N'
+	        , updated_usr_id=#{updatedUsrId}
+	        , updated_dt=now()   
+		WHERE menu_id = #{menuId}
+ 	</update>
+ 	 	
+    <!-- MENU_ID 카운팅 (ID 중복 체크) -->
+    <select id="countByMenuId" parameterType="string" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            epas.mst_menu_info
+        WHERE
+            menu_id = upper(#{value})
+    </select>
+
+</mapper>

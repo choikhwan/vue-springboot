@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.epas.login.mapper.MemberMapper">
+
+    <!-- DEVUSER.mst_usr_info_v1 테이블 전체 컬럼 -->
+    <sql id="memberColumns">
+            mui.usr_id, 
+			mui.email,
+			mui.usr_nm,
+			mui.usr_pwd,
+			to_char(mui.usr_pwd_created_dt,'YYYY-MM-DD HH24:MI:SS') as usr_pwd_created_dt,
+			mui.usr_tel,
+			mui.menu_ord,
+			mui.role_seq,
+			murl.role_nm,
+			mui.group_seq,
+			mugi.usr_group_nm,
+			mui.usr_lang,
+			mui.usr_ip,
+			mui.created_usr_id,
+			to_char(mui.created_dt,'YYYY-MM-DD HH24:MI:SS') as created_dt,
+			mui.updated_usr_id,
+			to_char(mui.updated_dt,'YYYY-MM-DD HH24:MI:SS') as updated_dt,
+			to_char(mui.last_login_dt, 'YYYY/MM/DD HH24:MI') as last_login_dt
+    </sql>
+
+    <!-- 회원 상세정보 조회 -->
+    <select id="findByLoginId" parameterType="string" resultType="com.epas.login.dto.MemberInfoDto">
+        select
+            <include refid="memberColumns" />
+        from DEVUSER.mst_usr_info mui 
+		inner join DEVUSER.mst_usr_group_info mugi on mugi.usr_group_seq = mui.group_seq
+		inner join DEVUSER.mst_usr_role_info murl on murl.role_seq = mui.role_seq
+        where 1=1
+        and mui.usr_id = #{value}
+    </select>
+    
+    <!-- 회원 상세정보 조회 -->
+    <select id="findUserInfoByUserId" parameterType="long" resultType="com.epas.login.dto.MemberInfoDto">
+        SELECT
+            <include refid="memberColumns" />
+        FROM
+            DEVUSER.mst_usr_info
+        WHERE
+            usr_no = #{value}
+    </select>
+
+
+    <!-- 회원 정보 수정 -->
+    <update id="updateUserInfo" parameterType="com.epas.login.dto.MemberInfoDto">
+        UPDATE
+	        DEVUSER.mst_usr_info
+	    SET
+	         updated_usr_id=#{usrId}
+	        ,updated_dt=SYSDATE
+	        <if test="usrNm!=null">,usr_nm=#{usrNm}</if>
+	        <if test="usrTel!=null">,usr_Tel=#{usrTel}</if>
+	        <if test="email!=null">,email=#{email}</if>
+	        <if test="menuOrd!=null">,menu_ord=#{menuOrd}</if>
+	    WHERE
+	        usr_id=#{usrId}
+    </update>
+    
+    <!-- 회원 비밀번호 수정 -->
+    <update id="updatePassword" parameterType="com.epas.login.dto.MemberInfoDto">
+        UPDATE
+	        DEVUSER.mst_usr_info
+	    SET
+	         updated_usr_id=#{usrId}
+	        ,usr_pwd=#{usrPwd}
+	        ,usr_pwd_created_dt=SYSDATE
+	        ,updated_dt=SYSDATE
+	    WHERE
+	        usr_id=#{usrId}
+    </update> 
+    
+    <!-- 회원 접속 IP 입력 -->
+    <update id="updateUserIp" parameterType="com.epas.login.dto.MemberInfoDto">
+        UPDATE
+	        DEVUSER.mst_usr_info
+	    SET
+	         updated_usr_id=#{usrId}
+	        ,updated_dt=SYSDATE
+	        ,usr_ip=#{usrIp}
+	        ,last_login_dt=SYSDATE
+	    WHERE
+	        usr_id=#{usrId}
+    </update>
+
+    <!-- 회원 수 카운팅 (ID 중복 체크) -->
+    <select id="countByLoginId" parameterType="string" resultType="int">
+        SELECT
+            COUNT(*)
+        FROM
+            DEVUSER.mst_usr_info
+        WHERE
+            usr_id = #{value}
+    </select>
+    
+    <!-- 회원 수 카운팅 (Admin Login 가능 수) -->
+    <select id="selectLoginAdminNum" resultType="int">
+        SELECT MAX(SYS_SET_VAL) AS SYS_SET_VAL
+		FROM 
+		(
+			SELECT TO_NUMBER(SYS_SET_VAL) AS SYS_SET_VAL, 'LIMIT' AS GROUP_NAME
+			FROM DEVUSER.MST_SYS_SET_INFO
+			WHERE SYS_SET_TYP = 'SETTINGS'
+	        AND SYS_PARENT_ID = 'CERTIFICATION'
+	        AND SYS_SET_NM = 'ACS_SYS_ADMIN_LIMIT'
+			UNION ALL 
+			SELECT 0 AS SYS_SET_VAL, 'LIMIT' AS GROUP_NAME FROM DUAL
+		) A
+		WHERE 1=1
+		GROUP BY GROUP_NAME
+    </select>
+    
+    <!-- 회원 수 카운팅 (일반 User Login 가능 수) -->
+    <select id="selectLoginUserNum" resultType="int">
+        SELECT MAX(SYS_SET_VAL) AS SYS_SET_VAL
+		FROM 
+		(
+			SELECT TO_NUMBER(SYS_SET_VAL) AS SYS_SET_VAL, 'LIMIT' AS GROUP_NAME
+			FROM DEVUSER.MST_SYS_SET_INFO
+			WHERE SYS_SET_TYP = 'SETTINGS'
+	        AND SYS_PARENT_ID = 'CERTIFICATION'
+	        AND SYS_SET_NM = 'USERS'
+			UNION ALL 
+			SELECT 0 AS SYS_SET_VAL, 'LIMIT' AS GROUP_NAME FROM DUAL
+		) A
+		WHERE 1=1
+		GROUP BY GROUP_NAME
+    </select>
+    
+    <!-- 회원 수 카운팅 (일반 User Login 수) -->
+    <select id="countLoginUserConn" resultType="int">
+        SELECT COUNT(*)
+		FROM
+		(
+			SELECT CONN_ID
+			, USR_ID
+			, USR_SESSION_ID
+			, USR_ACT
+			, CREATED_DT
+			FROM DEVUSER.MST_USR_CONN_INFO MUCI 
+			WHERE 1=1
+			AND (USR_SESSION_ID, CREATED_DT) IN (
+													SELECT USR_SESSION_ID, MAX(CREATED_DT)
+													FROM DEVUSER.MST_USR_CONN_INFO MUCI 
+													WHERE 1=1
+													AND USR_ID <![CDATA[<>]]> 'sysadmin'
+													GROUP BY USR_SESSION_ID
+												) 
+			AND USR_ACT = 'LOGIN'
+		) A
+		WHERE 1=1
+    </select>
+    
+    <!-- user ID로 로그인되어있는 Data 조회 -->
+    <select id="selectLoginUserConn" parameterType="string" resultType="com.epas.login.dto.UserConnInfoDto">
+        SELECT CONN_ID
+			 , USR_ID
+			 , USR_SESSION_ID
+			 , USR_ACT
+			 , CREATED_DT
+		FROM DEVUSER.MST_USR_CONN_INFO MUCI 
+		WHERE 1=1
+		AND (USR_SESSION_ID, CREATED_DT) IN (
+												SELECT USR_SESSION_ID, MAX(CREATED_DT)
+												FROM DEVUSER.MST_USR_CONN_INFO MUCI 
+												WHERE 1=1
+												AND USR_ID = #{value}
+												GROUP BY USR_SESSION_ID
+											) 
+		AND USR_ACT = 'LOGIN'
+    </select>
+    
+    <insert id="insertLoginUserConn" parameterType="java.util.HashMap">
+		INSERT INTO DEVUSER.MST_USR_CONN_INFO (
+			CONN_ID,
+			USR_ID,
+			USR_SESSION_ID,
+			USR_ACT,
+			CREATED_DT
+		) 
+		VALUES (
+			DEVUSER.USR_CONN.NEXTVAL,
+			#{usrId},
+			#{usrSessionId},
+			#{usrAct},
+			SYSDATE
+		) 
+	</insert>
+	
+	<insert id="insertUserLogoutData" parameterType="com.epas.login.dto.UserConnInfoDto">
+		<foreach collection="connInfos" item="data" index="index" separator="">		
+        INSERT INTO DEVUSER.MST_USR_CONN_INFO (
+			CONN_ID,
+			USR_ID,
+			USR_SESSION_ID,
+			USR_ACT,
+			CREATED_DT
+		) 
+		VALUES (
+			DEVUSER.USR_CONN.NEXTVAL,
+			#{data.usrId},
+			#{data.usrSessionId},
+			'LOGOUT',
+			SYSDATE
+		)
+				
+		</foreach>
+    </insert>
+
+</mapper>
